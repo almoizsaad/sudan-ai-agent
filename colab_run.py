@@ -21,29 +21,33 @@ def setup_colab():
         is_colab = False
 
     if is_colab:
-        # HARD FIX: Pin versions to satisfy habibi-tts (<2.9.0)
-        print("⚙️ Forcing compatible audio/torch stack (2.8.0)...")
+        # HARD FIX: Pin versions to 2.4.1 stack using the official stable index
+        # This version is highly compatible with F5-TTS / habibi-tts
+        print("⚙️ Installing verified audio/torch stack (2.4.1)...")
         subprocess.run([
-            sys.executable, "-m", "pip", "install", "-q", "-U", 
-            "--force-reinstall",
-            "torch==2.8.0", "torchaudio==2.8.0", "torchvision==0.26.0"
+            sys.executable, "-m", "pip", "install", "-q", "-U", "--force-reinstall",
+            "torch==2.4.1", "torchaudio==2.4.1", "torchvision==0.19.1",
+            "--index-url", "https://download.pytorch.org/whl/cu121"
         ])
         
+        print("🚀 Installing project libraries...")
         packages = ["openai-whisper", "google-genai", "python-dotenv", "anthropic", "habibi-tts"]
         subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-U"] + packages)
         
         import importlib
         importlib.invalidate_caches()
         
-        # Check for GPU
+        # Verify versions
         try:
             import torch
+            import torchaudio
+            print(f"✅ Torch: {torch.__version__} | Audio: {torchaudio.__version__}")
             if torch.cuda.is_available():
                 print(f"✅ GPU Detected: {torch.cuda.get_device_name(0)}")
             else:
-                print("⚠️ WARNING: No GPU detected. TTS and ASR will be VERY slow. Go to Runtime > Change runtime type > T4 GPU.")
-        except:
-            pass
+                print("⚠️ WARNING: No GPU detected.")
+        except Exception as e:
+            print(f"⚠️ Version check failed: {e}")
     else:
         print("Note: Not running in Colab environment.")
 
