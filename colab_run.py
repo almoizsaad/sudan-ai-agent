@@ -7,6 +7,10 @@ import sys
 import time
 
 def setup_colab():
+    # 0. DIRECTORY FIX: Ensure we are in the right place
+    if os.path.exists("/content/sudan-ai-agent"):
+        os.chdir("/content/sudan-ai-agent")
+        
     # 1. INSTALL ALL DEPENDENCIES
     print("🚀 Installing all libraries (ASR, LLM, TTS, etc.)...")
     
@@ -17,9 +21,13 @@ def setup_colab():
         is_colab = False
 
     if is_colab:
-        # Fix for the OSError/torch conflict: Install compatible torch stack first
-        print("⚙️ Optimizing torch dependencies for Colab...")
-        subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-U", "torch", "torchaudio", "torchvision"])
+        # HARD FIX: Pin versions to satisfy habibi-tts (<2.9.0)
+        print("⚙️ Forcing compatible audio/torch stack (2.8.0)...")
+        subprocess.run([
+            sys.executable, "-m", "pip", "install", "-q", "-U", 
+            "--force-reinstall",
+            "torch==2.8.0", "torchaudio==2.8.0", "torchvision==0.26.0"
+        ])
         
         packages = ["openai-whisper", "google-genai", "python-dotenv", "anthropic", "habibi-tts"]
         subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-U"] + packages)
@@ -28,13 +36,16 @@ def setup_colab():
         importlib.invalidate_caches()
         
         # Check for GPU
-        import torch
-        if torch.cuda.is_available():
-            print(f"✅ GPU Detected: {torch.cuda.get_device_name(0)}")
-        else:
-            print("⚠️ WARNING: No GPU detected. TTS and ASR will be VERY slow. Go to Runtime > Change runtime type > T4 GPU.")
+        try:
+            import torch
+            if torch.cuda.is_available():
+                print(f"✅ GPU Detected: {torch.cuda.get_device_name(0)}")
+            else:
+                print("⚠️ WARNING: No GPU detected. TTS and ASR will be VERY slow. Go to Runtime > Change runtime type > T4 GPU.")
+        except:
+            pass
     else:
-        print("Note: Not running in Colab environment. Ensure dependencies are installed manually.")
+        print("Note: Not running in Colab environment.")
 
     try:
         from google import genai
