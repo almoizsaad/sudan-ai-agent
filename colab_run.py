@@ -90,8 +90,8 @@ Rules:
     # 6. RUN PHASE 1: LLM TEST
     print("\n--- 🤖 TESTING SUDANESE LLM ---")
     client = genai.Client(api_key=llm_api_key)
-    # Using gemini-1.5-flash for better free-tier availability
-    model_id = 'gemini-1.5-flash'
+    # Using gemini-3.5-flash as the stable standard for 2026
+    model_id = 'gemini-3.5-flash'
 
     test_questions = [
         "السلام عليكم، الأسعار عندكم كم؟",
@@ -102,12 +102,13 @@ Rules:
     for q in test_questions:
         prompt = f"{sudanese_prompt}\n\nCustomer: {q}\nReply:"
         try:
+            # Explicitly setting the model ID
             response = client.models.generate_content(model=model_id, contents=prompt)
             print(f"❓ Q: {q}")
             print(f"🇸🇩 A: {response.text}")
             print("-" * 30)
         except Exception as e:
-            print(f"❌ Error testing LLM: {str(e)}")
+            print(f"❌ Error testing LLM ({model_id}): {str(e)}")
 
     # 7. RUN PHASE 2: WHISPER ASR TEST
     print("\n--- 🎤 TESTING WHISPER ASR ---")
