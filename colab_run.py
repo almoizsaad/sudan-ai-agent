@@ -9,8 +9,6 @@ import time
 def setup_colab():
     # 1. INSTALL ALL DEPENDENCIES
     print("🚀 Installing all libraries (ASR, LLM, TTS, etc.)...")
-    # Note: habibi-tts and whisper are heavy, this may take 3-5 minutes.
-    packages = ["openai-whisper", "google-genai", "python-dotenv", "anthropic", "habibi-tts"]
     
     try:
         import google.colab
@@ -19,9 +17,22 @@ def setup_colab():
         is_colab = False
 
     if is_colab:
+        # Fix for the OSError/torch conflict: Install compatible torch stack first
+        print("⚙️ Optimizing torch dependencies for Colab...")
+        subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-U", "torch", "torchaudio", "torchvision"])
+        
+        packages = ["openai-whisper", "google-genai", "python-dotenv", "anthropic", "habibi-tts"]
         subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-U"] + packages)
+        
         import importlib
         importlib.invalidate_caches()
+        
+        # Check for GPU
+        import torch
+        if torch.cuda.is_available():
+            print(f"✅ GPU Detected: {torch.cuda.get_device_name(0)}")
+        else:
+            print("⚠️ WARNING: No GPU detected. TTS and ASR will be VERY slow. Go to Runtime > Change runtime type > T4 GPU.")
     else:
         print("Note: Not running in Colab environment. Ensure dependencies are installed manually.")
 
