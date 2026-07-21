@@ -118,11 +118,22 @@ Rules:
     import glob
     audio_files = glob.glob("tests/audio_samples/*.mp3") + glob.glob("tests/audio_samples/*.wav")
     if audio_files:
+        # Sort by size to prefer non-empty files if multiple exist
+        audio_files.sort(key=lambda x: os.path.getsize(x), reverse=True)
         audio_path = audio_files[0]
-        print(f"Transcribing {audio_path}...")
-        result = asr_model.transcribe(audio_path, language="ar")
-        transcription = result["text"]
-        print(f"📜 Result: {transcription}")
+        
+        if os.path.getsize(audio_path) > 0:
+            print(f"Transcribing {audio_path} ({os.path.getsize(audio_path)} bytes)...")
+            try:
+                result = asr_model.transcribe(audio_path, language="ar")
+                transcription = result["text"]
+                print(f"📜 Result: {transcription}")
+            except Exception as e:
+                print(f"❌ Transcription failed: {str(e)}")
+                transcription = None
+        else:
+            print(f"⚠️ Skip: Found audio file {audio_path} but it is empty (0 bytes).")
+            transcription = None
     else:
         print("⚠️ Skip: No audio found in 'tests/audio_samples/'. Upload one to test.")
         transcription = None
