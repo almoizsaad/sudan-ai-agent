@@ -1,5 +1,4 @@
 # --- SUDANESE AI AGENT: COLAB ALL-IN-ONE SETUP & TEST ---
-# This script is designed to be run in a Google Colab notebook cell.
 
 import os
 import subprocess
@@ -34,7 +33,6 @@ def setup_colab():
     
     # 2. SETUP API KEYS
     llm_api_key = os.environ.get("LLM_API_KEY")
-    
     if not llm_api_key:
         if is_colab:
             from google.colab import userdata
@@ -91,7 +89,6 @@ Rules:
     # 6. RUN PHASE 1: LLM TEST
     print("\n--- 🤖 TESTING SUDANESE LLM ---")
     client = genai.Client(api_key=llm_api_key)
-    # Using gemini-3.5-flash-lite as the stable standard for 2026
     model_id = 'gemini-3.5-flash-lite'
 
     test_questions = [
@@ -109,7 +106,7 @@ Rules:
                 if "503" in str(e) or "High Demand" in str(e):
                     print(f"⚠️ Model busy (503), retrying in {delay}s... ({i+1}/{retries})")
                     time.sleep(delay)
-                    delay *= 2 # Exponential backoff
+                    delay *= 2 
                 else:
                     raise e
         raise Exception("Max retries exceeded for model.")
@@ -131,14 +128,34 @@ Rules:
 
     # Check for audio sample
     audio_path = "tests/audio_samples/sample1.mp3"
+    
+    # Try to find any audio file in that folder if sample1.mp3 is missing
+    if not os.path.exists(audio_path):
+        import glob
+        possible_files = glob.glob("tests/audio_samples/*.mp3") + glob.glob("tests/audio_samples/*.wav")
+        if possible_files:
+            audio_path = possible_files[0]
+            print(f"📂 Found alternative audio: {audio_path}")
+
     if os.path.exists(audio_path) and os.path.getsize(audio_path) > 0:
         print(f"Transcribing {audio_path}...")
         result = asr_model.transcribe(audio_path, language="ar")
-        print("\n📜 Transcribed Text:")
-        print(result["text"])
+        transcription = result["text"]
+        print(f"\n📜 Transcribed Text: {transcription}")
+        
+        print("\n--- 🔄 TESTING END-TO-END (Voice -> Sudanese Response) ---")
+        try:
+            reply = generate_with_retry(f"{sudanese_prompt}\n\nCustomer: {transcription}\nReply:", model_id)
+            print(f"🇸🇩 AI Response: {reply}")
+        except Exception as e:
+            print(f"❌ Error in end-to-end test: {str(e)}")
     else:
-        print("⚠️ No audio sample found in 'tests/audio_samples/sample1.mp3'.")
-        print("💡 Upload an Arabic audio file to that folder and re-run this setup to test ASR.")
+        print("⚠️ No audio sample found in 'tests/audio_samples/'.")
+        print("\n💡 INSTRUCTIONS FOR VOICE TEST:")
+        print("1. Click the Folder icon on the left sidebar.")
+        print("2. Go to 'sudan-ai-agent/tests/audio_samples/'.")
+        print("3. Upload your Sudanese Arabic audio file.")
+        print("4. Re-run this script to see the transcription and AI response!")
 
     print("\n✨ Setup Complete! Your project is ready for development.")
 
