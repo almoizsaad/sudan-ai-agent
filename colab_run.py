@@ -18,10 +18,17 @@ def setup_colab():
 
     if is_colab:
         subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-U"] + packages)
+        import importlib
+        importlib.invalidate_caches()
     else:
         print("Note: Not running in Colab environment. Ensure dependencies are installed manually.")
 
-    from genai import Client
+    try:
+        from google import genai
+    except ImportError:
+        print("❌ Failed to import 'google-genai'. Please restart the session and try again.")
+        return
+
     import whisper
     
     # 2. SETUP API KEYS
@@ -82,7 +89,7 @@ Rules:
 
     # 6. RUN PHASE 1: LLM TEST
     print("\n--- 🤖 TESTING SUDANESE LLM ---")
-    client = Client(api_key=llm_api_key)
+    client = genai.Client(api_key=llm_api_key)
     # Using gemini-1.5-flash for better free-tier availability
     model_id = 'gemini-1.5-flash'
 
