@@ -1,46 +1,72 @@
 import os
+from google import genai
 import whisper
-import google.generativeai as genai
-from dotenv import load_dotenv
 import subprocess
+from dotenv import load_dotenv
 
 load_dotenv()
 
-# Configure Gemini
-api_key = os.getenv("LLM_API_KEY")
-genai.configure(api_key=api_key)
-model = genai.GenerativeModel('gemini-2.0-flash')
+class SudaneseAIPipeline:
+    def __init__(self):
+        self.client = genai.Client(api_key=os.getenv("LLM_API_KEY"))
+        self.model_id = 'gemini-3.5-flash-lite'
+        self.whisper_model = None
+        
+        with open("prompts/sudan_dialect_system.txt", "r", encoding="utf-8") as f:
+            self.system_prompt = f.read()
 
-# Load Whisper (using base for speed/memory on Cloud Shell)
-whisper_model = whisper.load_model("base")
+    def transcribe(self, audio_path):
+        if self.whisper_model is None:
+            print("Loading Whisper model...")
+            self.whisper_model = whisper.load_model("medium")
+        
+        print(f"Transcribing {audio_path}...")
+        result = self.whisper_model.transcribe(audio_path, language="ar")
+        return result["text"]
 
-with open("prompts/sudan_dialect_system.txt", encoding="utf-8") as f:
-    SYSTEM_PROMPT = f.read()
+    def generate_response(self, text):
+        prompt = f"{self.system_prompt}\n\nCustomer: {text}\nReply:"
+        response = self.client.models.generate_content(
+            model=self.model_id,
+            contents=prompt
+        )
+        return response.text
 
-def process_voice_message(audio_path):
-    # 1. Audio Transcription
-    print(f"Transcribing {audio_path}...")
-    transcript = whisper_model.transcribe(audio_path, language="ar")["text"]
-    print(f"Transcript: {transcript}")
+    def text_to_speech(self, text, output_path="output/response.wav"):
+        print(f"Generating speech: {text}")
+        subprocess.run([
+            "habibi-tts_infer-cli",
+            "--gen_text", text,
+            "--dialect", "SDN",
+            "--output_dir", "output/"
+        ])
+        return output_path
 
-    # 2. Response Generation
-    print("Generating response...")
-    prompt = f"{SYSTEM_PROMPT}\n\nCustomer: {transcript}\nReply:"
-    response = model.generate_content(prompt)
-    reply_text = response.text
-    print(f"Reply: {reply_text}")
-
-    # 3. Convert Reply to Voice (using habibi-tts if installed)
-    # Note: This part assumes habibi-tts is in the PATH
-    output_audio = "logs/reply.wav"
-    # subprocess.run(["habibi-tts_infer-cli", "--gen_text", reply_text, "--dialect", "SDN", "--out_path", output_audio])
-
-    return {"input_transcript": transcript, "reply_text": reply_text, "output_audio": output_audio}
+    def process_voice(self, input_audio):
+        # 1. Audio -> Text
+        transcript = self.transcribe(input_audio)
+        print(f"Transcript: {transcript}")
+        
+        # 2. Text -> Sudanese AI Response
+        reply_text = self.generate_response(transcript)
+        print(f"AI Reply: {reply_text}")
+        
+        # 3. Reply -> Audio
+        output_audio = self.text_to_speech(reply_text)
+        
+        return {
+            "transcript": transcript,
+            "reply_text": reply_text,
+            "output_audio": output_audio
+        }
 
 if __name__ == "__main__":
-    sample_audio = "tests/audio_samples/sample1.wav"
-    if os.path.exists(sample_audio):
-        result = process_voice_message(sample_audio)
-        print(result)
+    # Test locally if file exists
+    pipeline = SudaneseAIPipeline()
+    import glob
+    samples = glob.glob("tests/audio_samples/*.wav") + glob.glob("tests/audio_samples/*.mp3")
+    if samples:
+        res = pipeline.process_voice(samples[0])
+        print("Success:", res)
     else:
-        print(f"Sample audio {sample_audio} not found.")
+        print("No audio sample found for local pipeline test.")
