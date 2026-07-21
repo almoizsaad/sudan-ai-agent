@@ -30,6 +30,7 @@ def setup_colab():
         return
 
     import whisper
+    import time
     
     # 2. SETUP API KEYS
     llm_api_key = os.environ.get("LLM_API_KEY")
@@ -90,8 +91,8 @@ Rules:
     # 6. RUN PHASE 1: LLM TEST
     print("\n--- 🤖 TESTING SUDANESE LLM ---")
     client = genai.Client(api_key=llm_api_key)
-    # Using gemini-3.5-flash as the stable standard for 2026
-    model_id = 'gemini-3.5-flash'
+    # Using gemini-3.5-flash-lite as the stable standard for 2026
+    model_id = 'gemini-3.5-flash-lite'
 
     test_questions = [
         "السلام عليكم، الأسعار عندكم كم؟",
@@ -99,13 +100,26 @@ Rules:
         "ممكن أرجع المنتج لو ما عجبني؟"
     ]
 
+    def generate_with_retry(prompt, model_id, retries=3, delay=5):
+        for i in range(retries):
+            try:
+                response = client.models.generate_content(model=model_id, contents=prompt)
+                return response.text
+            except Exception as e:
+                if "503" in str(e) or "High Demand" in str(e):
+                    print(f"⚠️ Model busy (503), retrying in {delay}s... ({i+1}/{retries})")
+                    time.sleep(delay)
+                    delay *= 2 # Exponential backoff
+                else:
+                    raise e
+        raise Exception("Max retries exceeded for model.")
+
     for q in test_questions:
         prompt = f"{sudanese_prompt}\n\nCustomer: {q}\nReply:"
         try:
-            # Explicitly setting the model ID
-            response = client.models.generate_content(model=model_id, contents=prompt)
+            reply = generate_with_retry(prompt, model_id)
             print(f"❓ Q: {q}")
-            print(f"🇸🇩 A: {response.text}")
+            print(f"🇸🇩 A: {reply}")
             print("-" * 30)
         except Exception as e:
             print(f"❌ Error testing LLM ({model_id}): {str(e)}")
