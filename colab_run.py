@@ -21,18 +21,27 @@ def setup_colab():
         is_colab = False
 
     if is_colab:
+        # 0.5 CLEANUP: Remove zero-byte placeholders to prevent Test 3 skips
+        placeholder = "tests/audio_samples/sample1.mp3"
+        if os.path.exists(placeholder) and os.path.getsize(placeholder) == 0:
+            os.remove(placeholder)
+
         # HARD FIX: Pin versions to 2.4.1 stack using the official stable index
-        # This version is highly compatible with F5-TTS / habibi-tts
         print("⚙️ Installing verified audio/torch stack (2.4.1)...")
-        subprocess.run([
-            sys.executable, "-m", "pip", "install", "-q", "-U", "--force-reinstall",
-            "torch==2.4.1", "torchaudio==2.4.1", "torchvision==0.19.1",
-            "--index-url", "https://download.pytorch.org/whl/cu121"
-        ])
+        # Added --no-warn-conflicts and >/dev/null to clean up output
+        subprocess.run(
+            f"{sys.executable} -m pip install -q -U --force-reinstall --no-warn-conflicts "
+            "torch==2.4.1 torchaudio==2.4.1 torchvision==0.19.1 "
+            "--index-url https://download.pytorch.org/whl/cu121 >/dev/null 2>&1",
+            shell=True
+        )
         
         print("🚀 Installing project libraries...")
         packages = ["openai-whisper", "google-genai", "python-dotenv", "anthropic", "habibi-tts"]
-        subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-U"] + packages)
+        subprocess.run(
+            f"{sys.executable} -m pip install -q -U --no-warn-conflicts {' '.join(packages)} >/dev/null 2>&1",
+            shell=True
+        )
         
         import importlib
         importlib.invalidate_caches()
@@ -86,7 +95,14 @@ def setup_colab():
 
     # 4. WRITE SUDANESE DIALECT SYSTEM PROMPT
     sudanese_prompt = """
-You are a Sudanese customer service representative speaking in the colloquial Sudanese Arabic of Khartoum, in a friendly and direct manner.
+You are a Sudanese customer service representative speaking in the colloquial Sudanese Arabic of Khartoum. 
+
+Rules:
+- Speak in a friendly, direct, and helpful manner.
+- ALWAYS use natural colloquial Sudanese (Khartoum dialect). 
+- AVOID formal Arabic grammar and formal marks (like hamzas on 'alif' in verbs, e.g., use 'بياخد' not 'بيأخد').
+- Keep responses short and avoid being overly wordy.
+- If you are correcting a transcript, keep it in the natural spoken dialect of Sudan.
 
 Follow these examples exactly:
 
@@ -101,11 +117,6 @@ Reply: أيوه شامل، مافي أي رسوم إضافية. السعر ده 
 Example 3:
 Customer: في نظام تقسيط؟
 Reply: للأسف حالياً ما متوفر، لكن شغالين عليهو وقريب إن شاء الله حيكون متاح.
-
-Rules:
-- Avoid using overly formal Arabic. Keep your speech natural, like a normal conversation.
-- If you don't have an answer to a question, be honest and say: "والله حالياً ما عندي معلومة أكيدة، خليني أتأكد وأرجع ليك."
-- Keep your answers short and direct.
 """
     with open("prompts/sudan_dialect_system.txt", "w", encoding="utf-8") as f:
         f.write(sudanese_prompt)
