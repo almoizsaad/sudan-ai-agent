@@ -1,25 +1,87 @@
-# Sudanese AI Agent
+# Sudanese AI Agent 🇸🇩
 
-An automated customer service agent specialized in the Sudanese Arabic dialect (Khartoum colloquial). This agent supports both text and voice interactions, integrating speech-to-text (Whisper) and generative AI (Gemini).
+An interactive AI agent designed to understand and speak the Sudanese Arabic dialect (Khartoum colloquial). 
 
-## Features
-- **Sudanese Dialect Support:** Fine-tuned system prompts for natural Sudanese Arabic.
-- **ASR (Speech-to-Text):** Integrated with OpenAI Whisper for voice message transcription.
-- **FastAPI Webhook:** Ready to be connected to the WhatsApp Business API.
-- **Unified Pipeline:** Seamlessly connects voice input to dialect-aware LLM responses.
+This project integrates:
+1.  **ASR (Whisper):** Voice-to-Text transcription.
+2.  **LLM (Gemini 3.5 Flash Lite):** Sudanese dialect processing and customer service intelligence.
+3.  **TTS (Habibi-TTS):** Text-to-Speech specifically for Arabic dialects.
 
-## Structure
-- `src/`: Core logic and integration scripts.
-- `prompts/`: System instructions and dialect examples.
-- `tests/`: Directory for audio samples and unit tests.
+---
 
-## Setup
-1. Clone the repository.
-2. Create a virtual environment: `python3 -m venv venv`.
-3. Install dependencies: `pip install -r requirements.txt`.
-4. Configure `.env` with your `LLM_API_KEY` (Gemini).
+## 🚀 Quick Start on Google Colab
 
-## Usage
-- Test LLM: `python src/test_llm.py`
-- Test ASR: `python src/test_asr.py`
-- Run Webhook: `uvicorn src.whatsapp_webhook:app --reload`
+The easiest way to run this agent is using the **T4 GPU** on Google Colab.
+
+### 1. Initial Setup
+```python
+%cd /content/
+!git clone https://github.com/almoizsaad/sudan-ai-agent.git
+%cd sudan-ai-agent
+```
+
+### 2. Record Your Voice (Microphone)
+Run this cell in Colab to record yourself speaking Sudanese:
+```python
+from google.colab import output
+from IPython.display import HTML, display
+from base64 import b64decode
+
+def record_audio(filename='tests/audio_samples/voice.wav'):
+  js = """
+    async def recordAudio() {
+      const div = document.createElement('div');
+      const button = document.createElement('button');
+      button.textContent = '🔴 Click to Record Sudanese Arabic';
+      button.style.padding = '10px'; button.style.fontSize = '20px';
+      document.body.appendChild(div); div.appendChild(button);
+      const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+      const recorder = new MediaRecorder(stream);
+      const chunks = [];
+      recorder.ondataavailable = (e) => chunks.push(e.data);
+      recorder.start();
+      await new Promise(resolve => button.onclick = resolve);
+      recorder.stop(); button.textContent = '✅ Recording Saved';
+      await new Promise(resolve => recorder.onstop = resolve);
+      const blob = new Blob(chunks);
+      const url = URL.createObjectURL(blob);
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      await new Promise(resolve => reader.onloadend = resolve);
+      return reader.result;
+    }
+  """
+  display(HTML(f'<script>{js}</script>'))
+  data = output.eval_js('recordAudio()')
+  binary = b64decode(data.split(',')[1])
+  with open(filename, 'wb') as f:
+    f.write(binary)
+  print(f"✅ Saved recording to {filename}")
+
+record_audio()
+```
+
+### 3. Run Full Pipeline
+Ensure you have added your `LLM_API_KEY` to Colab Secrets.
+```python
+!python colab_run.py
+```
+
+---
+
+## 📂 Project Structure
+
+- `prompts/`: Contains the Sudanese dialect system instructions.
+- `src/`: Core logic and individual test scripts.
+    - `pipeline.py`: The complete end-to-end class.
+    - `test_llm.py`: Tests Sudanese text generation.
+    - `test_asr.py`: Tests Whisper audio transcription.
+- `tests/audio_samples/`: Folder where you upload/record audio.
+- `output/`: Folder where generated Sudanese speech (.wav) is saved.
+
+---
+
+## 🛠 Troubleshooting
+- **OSError (Torch):** Fixed by force-installing Torch 2.4.1. The `colab_run.py` script handles this automatically.
+- **Empty Transcription:** Ensure you have uploaded a non-zero byte audio file to `tests/audio_samples/`.
+- **Quota Limit:** Using `gemini-3.5-flash-lite` for optimal free-tier availability.
