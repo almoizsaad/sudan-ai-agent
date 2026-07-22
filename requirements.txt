@@ -62,3 +62,10 @@ uritemplate==4.2.0
 urllib3==2.7.0
 uvicorn==0.51.0
 xxhash==3.8.1
+datasets
+huggingface_hub
+librosa
+soundfile
+transformers
+onnxruntime
+yt-dlp
