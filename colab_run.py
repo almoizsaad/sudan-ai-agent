@@ -184,6 +184,7 @@ Reply: للأسف حالياً ما متوفر، لكن شغالين عليهو 
         # Try to find a reference audio
         import glob
         ref_audio = None
+        ref_text = None
         if os.path.exists("tests/audio_samples/voice.wav"):
             ref_audio = "tests/audio_samples/voice.wav"
         else:
@@ -192,6 +193,12 @@ Reply: للأسف حالياً ما متوفر، لكن شغالين عليهو 
                 if os.path.getsize(s) > 0:
                     ref_audio = s
                     break
+
+        if ref_audio:
+            txt_path = os.path.splitext(ref_audio)[0] + ".txt"
+            if os.path.exists(txt_path):
+                with open(txt_path, "r", encoding="utf-8") as f:
+                    ref_text = f.read().strip()
 
         cmd = [
             "habibi-tts_infer-cli", 
@@ -202,6 +209,11 @@ Reply: للأسف حالياً ما متوفر، لكن شغالين عليهو 
         if ref_audio:
             print(f"Using reference audio: {ref_audio}")
             cmd.extend(["--ref_audio", ref_audio])
+            if ref_text:
+                print(f"Using reference text: {ref_text}")
+                cmd.extend(["--ref_text", ref_text])
+            else:
+                print("⚠️ Warning: No reference text found. Habibi-TTS works best with --ref_text.")
 
         subprocess.run(cmd)
         print(f"✅ TTS Audio generated in 'output/' folder.")
@@ -224,6 +236,8 @@ Reply: للأسف حالياً ما متوفر، لكن شغالين عليهو 
         ]
         if ref_audio:
             cmd.extend(["--ref_audio", ref_audio])
+            if ref_text:
+                cmd.extend(["--ref_text", ref_text])
             
         subprocess.run(cmd)
         print(f"🏁 Full pipeline complete. Check 'output/' for the final voice response.")

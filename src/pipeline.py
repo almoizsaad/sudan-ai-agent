@@ -38,6 +38,8 @@ class SudaneseAIPipeline:
         # Try to find a reference audio in tests/audio_samples/
         import glob
         ref_audio = None
+        ref_text = None
+        
         # Prefer 'voice.wav' if recorded by user
         if os.path.exists("tests/audio_samples/voice.wav"):
             ref_audio = "tests/audio_samples/voice.wav"
@@ -48,6 +50,13 @@ class SudaneseAIPipeline:
                     ref_audio = s
                     break
         
+        if ref_audio:
+            # Look for a matching .txt file for ref_text
+            txt_path = os.path.splitext(ref_audio)[0] + ".txt"
+            if os.path.exists(txt_path):
+                with open(txt_path, "r", encoding="utf-8") as f:
+                    ref_text = f.read().strip()
+            
         cmd = [
             "habibi-tts_infer-cli",
             "--gen_text", text,
@@ -58,6 +67,11 @@ class SudaneseAIPipeline:
         if ref_audio:
             print(f"Using reference audio: {ref_audio}")
             cmd.extend(["--ref_audio", ref_audio])
+            if ref_text:
+                print(f"Using reference text: {ref_text}")
+                cmd.extend(["--ref_text", ref_text])
+            else:
+                print("⚠️ Warning: No reference text found. Habibi-TTS works best with --ref_text.")
             
         subprocess.run(cmd)
         return output_path
