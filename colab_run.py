@@ -177,7 +177,7 @@ Reply: للأسف حالياً ما متوفر، لكن شغالين عليهو 
 
     # --- PHASE 4: HABIBI-TTS TEST (TEXT-TO-SPEECH) ---
     print("\n--- 🔊 TEST 4: HABIBI-TTS (TEXT-TO-SPEECH) ---")
-    tts_text = "أهلاً بك، كيف أقدر أساعدك الليلة؟"
+    tts_text = "حبابك عشرة، كيف أقدر أساعدك الليلة؟"
     output_audio = "output/tts_test.wav"
     print(f"Generating Sudanese speech for: '{tts_text}'...")
     try:
@@ -187,6 +187,7 @@ Reply: للأسف حالياً ما متوفر، لكن شغالين عليهو 
             "habibi-tts_infer-cli", 
             "--gen_text", tts_text, 
             "--dialect", "SDN",
+            "--model", "Specialized",
             "--output_dir", "output/"
         ])
         print(f"✅ TTS Audio generated in 'output/' folder.")
@@ -205,6 +206,7 @@ Reply: للأسف حالياً ما متوفر، لكن شغالين عليهو 
             "habibi-tts_infer-cli", 
             "--gen_text", reply, 
             "--dialect", "SDN",
+            "--model", "Specialized",
             "--output_dir", "output/"
         ])
         print(f"🏁 Full pipeline complete. Check 'output/' for the final voice response.")

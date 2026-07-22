@@ -38,6 +38,7 @@ class SudaneseAIPipeline:
             "habibi-tts_infer-cli",
             "--gen_text", text,
             "--dialect", "SDN",
+            "--model", "Specialized",
             "--output_dir", "output/"
         ])
         return output_path
