@@ -34,13 +34,32 @@ class SudaneseAIPipeline:
 
     def text_to_speech(self, text, output_path="output/response.wav"):
         print(f"Generating speech: {text}")
-        subprocess.run([
+        
+        # Try to find a reference audio in tests/audio_samples/
+        import glob
+        ref_audio = None
+        # Prefer 'voice.wav' if recorded by user
+        if os.path.exists("tests/audio_samples/voice.wav"):
+            ref_audio = "tests/audio_samples/voice.wav"
+        else:
+            samples = glob.glob("tests/audio_samples/*.wav") + glob.glob("tests/audio_samples/*.mp3")
+            for s in samples:
+                if os.path.getsize(s) > 0:
+                    ref_audio = s
+                    break
+        
+        cmd = [
             "habibi-tts_infer-cli",
             "--gen_text", text,
             "--dialect", "SDN",
-            "--model", "Specialized",
             "--output_dir", "output/"
-        ])
+        ]
+        
+        if ref_audio:
+            print(f"Using reference audio: {ref_audio}")
+            cmd.extend(["--ref_audio", ref_audio])
+            
+        subprocess.run(cmd)
         return output_path
 
     def process_voice(self, input_audio):

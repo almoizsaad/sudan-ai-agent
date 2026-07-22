@@ -181,15 +181,29 @@ Reply: للأسف حالياً ما متوفر، لكن شغالين عليهو 
     output_audio = "output/tts_test.wav"
     print(f"Generating Sudanese speech for: '{tts_text}'...")
     try:
-        # Note: This requires a reference audio. We'll use a placeholder or check if user uploaded one.
-        # For a basic test, we call the CLI as per the plan
-        subprocess.run([
+        # Try to find a reference audio
+        import glob
+        ref_audio = None
+        if os.path.exists("tests/audio_samples/voice.wav"):
+            ref_audio = "tests/audio_samples/voice.wav"
+        else:
+            samples = glob.glob("tests/audio_samples/*.wav") + glob.glob("tests/audio_samples/*.mp3")
+            for s in samples:
+                if os.path.getsize(s) > 0:
+                    ref_audio = s
+                    break
+
+        cmd = [
             "habibi-tts_infer-cli", 
             "--gen_text", tts_text, 
             "--dialect", "SDN",
-            "--model", "Specialized",
             "--output_dir", "output/"
-        ])
+        ]
+        if ref_audio:
+            print(f"Using reference audio: {ref_audio}")
+            cmd.extend(["--ref_audio", ref_audio])
+
+        subprocess.run(cmd)
         print(f"✅ TTS Audio generated in 'output/' folder.")
     except Exception as e:
         print(f"❌ TTS Error: {str(e)}")
@@ -202,13 +216,16 @@ Reply: للأسف حالياً ما متوفر، لكن شغالين عليهو 
         reply = generate_with_retry(f"{sudanese_prompt}\n\nCustomer: {transcription}\nReply:")
         print(f"🤖 AI Response: {reply}")
         # 3. Convert to Voice
-        subprocess.run([
+        cmd = [
             "habibi-tts_infer-cli", 
             "--gen_text", reply, 
             "--dialect", "SDN",
-            "--model", "Specialized",
             "--output_dir", "output/"
-        ])
+        ]
+        if ref_audio:
+            cmd.extend(["--ref_audio", ref_audio])
+            
+        subprocess.run(cmd)
         print(f"🏁 Full pipeline complete. Check 'output/' for the final voice response.")
 
     print("\n✨ All tests processed! Your Sudanese AI Agent is ready.")
